@@ -78,12 +78,20 @@ ForEach(items) { item in
     AnyView(item.isSpecial ? SpecialRow(item: item) : RegularRow(item: item))
 }
 
-// Good - use @ViewBuilder
+// Good - Create a unified row view
 ForEach(items) { item in
-    if item.isSpecial {
-        SpecialRow(item: item)
-    } else {
-        RegularRow(item: item)
+    ItemRow(item: item)
+}
+
+struct ItemRow: View {
+    let item: Item
+
+    var body: some View {
+        if item.isSpecial {
+            SpecialRow(item: item)
+        } else {
+            RegularRow(item: item)
+        }
     }
 }
 ```
@@ -92,18 +100,18 @@ ForEach(items) { item in
 
 ## Enumerated Sequences
 
-**Don't convert enumerated sequences to arrays. Use them directly.**
+**Always convert enumerated sequences to arrays. To be able to use them in a ForEach.**
 
 ```swift
 let items = ["A", "B", "C"]
 
 // Correct
-ForEach(items.enumerated(), id: \.offset) { index, item in
+ForEach(Array(items.enumerated()), id: \.offset) { index, item in
     Text("\(index): \(item)")
 }
 
-// Wrong - unnecessary array conversion
-ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+// Wrong - Doesn't compile, enumerated() isn't an array
+ForEach(items.enumerated(), id: \.offset) { index, item in
     Text("\(index): \(item)")
 }
 ```
