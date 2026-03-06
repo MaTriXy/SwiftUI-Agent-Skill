@@ -67,7 +67,7 @@ Use this skill to build, review, or improve SwiftUI features with correct state 
 - Pass only needed values to views (avoid large "config" or "context" objects)
 - Eliminate unnecessary dependencies to reduce update fan-out
 - Consider per-item `@Observable` state objects in lists to narrow update/dependency scope
-- Avoid storing frequently-changing values in the environment
+- Consider whether frequently-changing values belong in the environment; prefer more local state when it reduces unnecessary view updates
 - Check for value changes before assigning state in hot paths
 - Avoid redundant state updates in `onReceive`, `onChange`, scroll handlers
 - Minimize work in frequently executed code paths
