@@ -209,7 +209,7 @@ WindowGroup {
 ```
 
 **Guidelines:**
-- Always set `minWidth`/`minHeight` via `.frame()` on content
+- Prefer setting `minWidth`/`minHeight` via `.frame()` on content for predictable layout
 - Use `.windowResizability(.contentMinSize)` to enforce those minimums
 - Use `.defaultSize()` for initial dimensions (larger than minimums)
 - Use `.defaultPosition(.center)` for centered initial placement
