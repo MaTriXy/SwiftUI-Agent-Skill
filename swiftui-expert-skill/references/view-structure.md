@@ -297,7 +297,7 @@ ZStack(alignment: .topTrailing) {
 
 ## Compositing Group Before Clipping
 
-**Always add `.compositingGroup()` before `.clipShape()` when clipping layered views (overlay or background).** Without it, each layer is antialiased separately and then composited. Where antialiased edges overlap — typically at rounded corners — you get visible color fringes (semi-transparent pixels of different colors blending together).
+**Always add `.compositingGroup()` before `.clipShape()` when clipping layered views (`.overlay` or `.background`).** Without it, each layer is antialiased separately and then composited. Where antialiased edges overlap — typically at rounded corners — you get visible color fringes (semi-transparent pixels of different colors blending together).
 
 ```swift
 let shape = RoundedRectangle(cornerRadius: 16)
