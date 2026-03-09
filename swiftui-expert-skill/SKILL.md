@@ -228,6 +228,8 @@ Button("Confirm") { }
 - [ ] Chart data models use `Identifiable` (or explicit `id:` key path)
 - [ ] Chart-wide modifiers applied to `Chart`, not individual marks
 - [ ] iOS 17+ APIs (`SectorMark`, selection, scrollable axes) are availability-gated
+- [ ] iOS 18+ APIs (plot types like `LinePlot`, `AreaPlot`) are availability-gated
+- [ ] iOS 26+ APIs (`Chart3D`, `SurfacePlot`) are availability-gated
 - [ ] Meaningful `.value()` labels used for axes and accessibility
 - [ ] `foregroundStyle(by:)` used for categorical series (not manual per-mark colors)
 

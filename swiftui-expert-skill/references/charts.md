@@ -225,13 +225,15 @@ iOS 18 adds data-driven plot wrappers: `AreaPlot`, `BarPlot`, `LinePlot`, `Point
 `LinePlot` and `AreaPlot` also accept function closures for plotting mathematical functions without discrete data:
 
 ```swift
-Chart {
-    LinePlot(x: "x", y: "sin(x)") { x in
-        sin(x)
+if #available(iOS 18, *) {
+    Chart {
+        LinePlot(x: "x", y: "sin(x)") { x in
+            sin(x)
+        }
     }
+    .chartXScale(domain: -Double.pi ... Double.pi)
+    .chartYScale(domain: -1.5 ... 1.5)
 }
-.chartXScale(domain: -Double.pi ... Double.pi)
-.chartYScale(domain: -1.5 ... 1.5)
 ```
 
 Use plot types when you want a data-first API surface or need function plotting. The underlying chart families stay the same.
@@ -737,14 +739,26 @@ struct StepsChart: View, AXChartDescriptorRepresentable {
     }
 
     func makeChartDescriptor() -> AXChartDescriptor {
+        guard let first = steps.first, let last = steps.last,
+              let maxCount = steps.map(\.count).max() else {
+            return AXChartDescriptor(
+                title: "Daily Step Count",
+                summary: nil,
+                xAxis: AXNumericDataAxisDescriptor(title: "Date", range: 0...1, gridlinePositions: []) { "\($0)" },
+                yAxis: AXNumericDataAxisDescriptor(title: "Steps", range: 0...1, gridlinePositions: []) { "\($0)" },
+                additionalAxes: [],
+                series: []
+            )
+        }
+
         let xAxis = AXDateDataAxisDescriptor(
             title: "Date",
-            range: steps.first!.date...steps.last!.date,
+            range: first.date...last.date,
             gridlinePositions: []
         )
         let yAxis = AXNumericDataAxisDescriptor(
             title: "Steps",
-            range: 0...Double(steps.map(\.count).max()!),
+            range: 0...Double(maxCount),
             gridlinePositions: []
         ) { value in "\(Int(value)) steps" }
 
