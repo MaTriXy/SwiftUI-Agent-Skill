@@ -519,42 +519,28 @@ struct ProxyDrivenChart: View {
 
     var body: some View {
         Chart(steps) { day in
-            LineMark(
-                x: .value("Day", day.date),
-                y: .value("Steps", day.count)
-            )
+            LineMark(x: .value("Day", day.date), y: .value("Steps", day.count))
         }
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
+                Rectangle().fill(.clear).contentShape(Rectangle())
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let frame: CGRect
-                                if #available(iOS 17, *) {
-                                    guard let plotFrame = proxy.plotFrame else { return }
-                                    frame = geometry[plotFrame]
-                                } else {
-                                    frame = geometry[proxy.plotAreaFrame]
-                                }
+                                // Use proxy.plotFrame (iOS 17+) or proxy.plotAreaFrame (iOS 16)
+                                guard let plotFrame = proxy.plotFrame else { return }
+                                let frame = geometry[plotFrame]
                                 let x = value.location.x - frame.origin.x
-
                                 guard x >= 0, x <= frame.size.width else { return }
                                 selectedDate = proxy.value(atX: x, as: Date.self)
                             }
-                            .onEnded { _ in
-                                selectedDate = nil
-                            }
+                            .onEnded { _ in selectedDate = nil }
                     )
             }
         }
     }
 }
 ```
-
-The example above uses `plotFrame` on iOS 17+ and falls back to `plotAreaFrame` on iOS 16.
 
 `ChartProxy` gives you lower-level access to:
 
@@ -722,7 +708,7 @@ LineMark(
 
 ### Custom Audio Graphs
 
-For advanced accessibility, conform your chart view to `AXChartDescriptorRepresentable` and implement `makeChartDescriptor()` to provide custom axis descriptors and data series.
+For advanced accessibility, conform your chart view to `AXChartDescriptorRepresentable` and implement `makeChartDescriptor()`. Attach it with `.accessibilityChartDescriptor(self)`.
 
 ```swift
 struct StepsChart: View, AXChartDescriptorRepresentable {
@@ -730,147 +716,29 @@ struct StepsChart: View, AXChartDescriptorRepresentable {
 
     var body: some View {
         Chart(steps) { day in
-            LineMark(
-                x: .value("Date", day.date),
-                y: .value("Steps", day.count)
-            )
+            LineMark(x: .value("Date", day.date), y: .value("Steps", day.count))
         }
         .accessibilityChartDescriptor(self)
     }
 
     func makeChartDescriptor() -> AXChartDescriptor {
-        guard let first = steps.first, let last = steps.last,
-              let maxCount = steps.map(\.count).max() else {
-            return AXChartDescriptor(
-                title: "Daily Step Count",
-                summary: nil,
-                xAxis: AXNumericDataAxisDescriptor(title: "Date", range: 0...1, gridlinePositions: []) { "\($0)" },
-                yAxis: AXNumericDataAxisDescriptor(title: "Steps", range: 0...1, gridlinePositions: []) { "\($0)" },
-                additionalAxes: [],
-                series: []
-            )
-        }
-
         let xAxis = AXDateDataAxisDescriptor(
-            title: "Date",
-            range: first.date...last.date,
-            gridlinePositions: []
-        )
+            title: "Date", range: steps.first!.date...steps.last!.date, gridlinePositions: [])
         let yAxis = AXNumericDataAxisDescriptor(
-            title: "Steps",
-            range: 0...Double(maxCount),
-            gridlinePositions: []
-        ) { value in "\(Int(value)) steps" }
-
+            title: "Steps", range: 0...Double(steps.map(\.count).max() ?? 0),
+            gridlinePositions: []) { "\(Int($0)) steps" }
         let series = AXDataSeriesDescriptor(
-            name: "Daily Steps",
-            isContinuous: true,
-            dataPoints: steps.map {
-                .init(x: $0.date, y: Double($0.count))
-            }
-        )
-
-        return AXChartDescriptor(
-            title: "Daily Step Count",
-            summary: nil,
-            xAxis: xAxis,
-            yAxis: yAxis,
-            additionalAxes: [],
-            series: [series]
-        )
-    }
-}
-```
-
-## Complete Examples
-
-### Interactive Line Chart
-
-```swift
-import Charts
-import SwiftUI
-
-struct DailyStepsChart: View {
-    let steps: [DailySteps]
-    @State private var selectedDate: Date?
-
-    var body: some View {
-        Chart(steps) { day in
-            LineMark(
-                x: .value("Day", day.date),
-                y: .value("Steps", day.count)
-            )
-            .interpolationMethod(.monotone)
-
-            PointMark(
-                x: .value("Day", day.date),
-                y: .value("Steps", day.count)
-            )
-
-            if let selectedDate {
-                RuleMark(x: .value("Selected Day", selectedDate))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .chartXAxis {
-            AxisMarks(values: .stride(by: .day)) {
-                AxisGridLine()
-                AxisTick(length: .label)
-                AxisValueLabel(format: .dateTime.weekday(.narrow))
-            }
-        }
-        .chartYAxisLabel("Steps")
-        .chartXSelection(value: $selectedDate)
-    }
-}
-```
-
-### Range-Selectable Bar Chart
-
-```swift
-import Charts
-import SwiftUI
-
-struct RevenueRangeChart: View {
-    let weeks: [WeeklyRevenue]
-    @State private var selectedWeeks: ClosedRange<Int>?
-
-    var body: some View {
-        Chart(weeks) { week in
-            BarMark(
-                x: .value("Week", week.index),
-                y: .value("Revenue", week.revenue)
-            )
-        }
-        .chartScrollableAxes(.horizontal)
-        .chartXVisibleDomain(length: 8)
-        .chartXSelection(range: $selectedWeeks)
+            name: "Daily Steps", isContinuous: true,
+            dataPoints: steps.map { .init(x: $0.date, y: Double($0.count)) })
+        return AXChartDescriptor(title: "Daily Step Count", summary: nil,
+            xAxis: xAxis, yAxis: yAxis, additionalAxes: [], series: [series])
     }
 }
 ```
 
 ## Fallback Strategies
 
-### Gate Advanced APIs by OS Version
-
-```swift
-if #available(iOS 17, *) {
-    Chart(data) { item in
-        LineMark(
-            x: .value("X", item.x),
-            y: .value("Y", item.y)
-        )
-    }
-    .chartXSelection(value: $selectedX)
-} else {
-    Chart(data) { item in
-        LineMark(
-            x: .value("X", item.x),
-            y: .value("Y", item.y)
-        )
-    }
-}
-```
+Gate advanced APIs with `#available` and provide a fallback chart without the gated features (e.g., omit `.chartXSelection` on iOS 16).
 
 ### Version Breakdown
 

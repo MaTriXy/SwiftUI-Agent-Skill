@@ -85,30 +85,24 @@ Follow your tool’s official documentation, here are a few popular ones:
 
 Your agent should reference the workflow/checklists in `swiftui-expert-skill/SKILL.md` and jump into the relevant reference file for your task.
 
-## What This Skill Offers
+## What's Inside
 
-This skill gives your AI coding tool practical SwiftUI guidance. It can:
+This skill covers the full surface of SwiftUI development -- from state management and view composition to Swift Charts, macOS multi-window scenes, animations, and iOS 26+ Liquid Glass -- without bloating your agent's task context. Reference files load on demand, so your agent gets deep guidance only for the topic at hand.
 
-### Guide Your SwiftUI Decisions
-- Choose the right state management tool (`@State`, `@Binding`, `@Observable`, `@Bindable`)
-- Provide clear guidance for sheets, navigation, scrolling, and lists
-- Advise on iOS 26+ Liquid Glass usage with safe availability fallbacks
+- **State management** -- property wrapper selection, `@Observable`, data flow patterns
+- **View composition** -- extraction patterns, container views, identity stability
+- **Performance** -- hot-path optimization, lazy loading, `@Observable` granularity
+- **Lists & ForEach** -- stable identity, Table, inline filtering pitfalls
+- **Navigation & sheets** -- NavigationStack, NavigationSplitView, Inspector, enum-based sheets
+- **Swift Charts** -- marks, axes, selection, styling, accessibility, Chart3D
+- **Animations** -- implicit/explicit, transitions, phase/keyframe, `@Animatable` macro
+- **macOS** -- scenes, window styling, Table, HSplitView, AppKit interop
+- **Liquid Glass** -- iOS 26+ glass effects, containers, fallback patterns
+- **Accessibility** -- VoiceOver, Dynamic Type, grouping, traits
+- **Image optimization** -- AsyncImage, downsampling, caching
+- **Latest APIs** -- deprecated-to-modern migration guide (iOS 15+ through iOS 26+)
 
-### Write Better SwiftUI Views
-- Keep view identity stable (e.g. avoid common `ForEach` pitfalls)
-- Improve view composition for readability and efficient diffing
-- Avoid common update/refresh pitfalls that cause unnecessary re-renders
-
-### Improve Performance
-- Reduce redundant state updates in hot paths
-- Improve list performance via stable identity and consistent row structure
-- Suggest image downsampling when `UIImage(data:)` is encountered (as an optional optimization)
-
-## What Makes This Skill Different
-
-**Non-Opinionated**: Focuses on SwiftUI correctness, not forcing an architecture, project structure, or code style.
-
-**Practical & concise**: Treats the agent as capable; provides the checklists and pitfalls that actually matter in day-to-day SwiftUI work.
+Non-opinionated: focuses on correctness and performance, not architecture or code style.
 
 ## Skill Structure
 <!-- BEGIN REFERENCE STRUCTURE -->

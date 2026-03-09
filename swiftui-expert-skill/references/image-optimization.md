@@ -24,59 +24,7 @@ AsyncImage(url: imageURL) { phase in
 .frame(width: 200, height: 200)
 ```
 
-### AsyncImage with Custom Placeholder
-
-```swift
-struct ImageView: View {
-    let url: URL?
-    
-    var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .empty:
-                ZStack {
-                    Color.gray.opacity(0.2)
-                    ProgressView()
-                }
-            case .success(let image):
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            case .failure:
-                ZStack {
-                    Color.gray.opacity(0.2)
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundStyle(.secondary)
-                }
-            @unknown default:
-                EmptyView()
-            }
-        }
-        .clipShape(.rect(cornerRadius: 12))
-    }
-}
-```
-
-### AsyncImage with Transition
-
-```swift
-AsyncImage(url: imageURL) { phase in
-    switch phase {
-    case .empty:
-        ProgressView()
-    case .success(let image):
-        image
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .transition(.opacity)
-    case .failure:
-        Image(systemName: "photo")
-    @unknown default:
-        EmptyView()
-    }
-}
-.animation(.easeInOut, value: imageURL)
-```
+For custom placeholders, replace `ProgressView()` in the `.empty` case with your placeholder view. Add `.transition(.opacity)` to the success case and `.animation(.easeInOut, value: imageURL)` to the container for fade-in transitions.
 
 ## Image Decoding and Downsampling (Optional Optimization)
 
@@ -145,56 +93,7 @@ OptimizedImageView(
 )
 ```
 
-### Reusable Image Downsampling Helper
-
-```swift
-actor ImageProcessor {
-    func downsample(data: Data, to targetSize: CGSize) -> UIImage? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
-            return nil
-        }
-        
-        let maxDimension = max(targetSize.width, targetSize.height) * UIScreen.main.scale
-        
-        let options: [CFString: Any] = [
-            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceShouldCache: false
-        ]
-        
-        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            return nil
-        }
-        
-        return UIImage(cgImage: cgImage)
-    }
-}
-
-// Usage in view
-struct ImageView: View {
-    let imageData: Data
-    let targetSize: CGSize
-    @State private var image: UIImage?
-    
-    private let processor = ImageProcessor()
-    
-    var body: some View {
-        Group {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } else {
-                ProgressView()
-            }
-        }
-        .task {
-            image = await processor.downsample(data: imageData, to: targetSize)
-        }
-    }
-}
-```
+For reusable downsampling, extract the `decodeAndDownsample` function into an `actor` to add `UIScreen.main.scale` multiplier and `kCGImageSourceShouldCache: false` for tighter memory control.
 
 ### When to Suggest This Optimization
 
@@ -248,39 +147,17 @@ struct ImageCache {
 
 ## SF Symbols
 
-### Using SF Symbols
-
 ```swift
-// Basic symbol
 Image(systemName: "star.fill")
     .foregroundStyle(.yellow)
-
-// With rendering mode
-Image(systemName: "heart.fill")
-    .symbolRenderingMode(.multicolor)
-
-// With variable color
-Image(systemName: "speaker.wave.3.fill")
-    .symbolRenderingMode(.hierarchical)
-    .foregroundStyle(.blue)
+    .symbolRenderingMode(.multicolor)     // or .hierarchical, .palette, .monochrome
 
 // Animated symbols (iOS 17+)
 Image(systemName: "antenna.radiowaves.left.and.right")
     .symbolEffect(.variableColor)
 ```
 
-### SF Symbol Variants
-
-```swift
-// Circle variant
-Image(systemName: "star.circle.fill")
-
-// Square variant
-Image(systemName: "star.square.fill")
-
-// With badge
-Image(systemName: "folder.badge.plus")
-```
+Variants are available via naming convention: `star.circle.fill`, `star.square.fill`, `folder.badge.plus`.
 
 ## Summary Checklist
 

@@ -203,132 +203,56 @@ struct SignUpView: View {
 
 ## @StateObject vs @ObservedObject (Legacy - Pre-iOS 17)
 
-**Note**: These are legacy patterns. Always prefer `@Observable` with `@State` for iOS 17+.
+**Note**: Always prefer `@Observable` with `@State` for iOS 17+.
 
-The key distinction is **ownership**:
-
-- `@StateObject`: View **creates and owns** the object
-- `@ObservedObject`: View **receives** the object from outside
+The key distinction is **ownership**: `@StateObject` when the view **creates and owns** the object; `@ObservedObject` when the view **receives** it from outside.
 
 ```swift
-// Legacy pattern - use @Observable instead
-class MyViewModel: ObservableObject {
-    @Published var items: [String] = []
-}
-
 // View creates it → @StateObject
-struct OwnerView: View {
-    @StateObject private var viewModel = MyViewModel()
-
-    var body: some View {
-        ChildView(viewModel: viewModel)
-    }
-}
+@StateObject private var viewModel = MyViewModel()
 
 // View receives it → @ObservedObject
-struct ChildView: View {
-    @ObservedObject var viewModel: MyViewModel
-
-    var body: some View {
-        List(viewModel.items, id: \.self) { Text($0) }
-    }
-}
+@ObservedObject var viewModel: MyViewModel
 ```
 
-### Common Mistake
+**Never** create an `ObservableObject` inline with `@ObservedObject` -- it recreates the instance on every view update.
 
-Never create an `ObservableObject` inline with `@ObservedObject`:
+### @StateObject instantiation in View's initializer
+
+Prefer storing the `@StateObject` in the parent view and passing it down. If you must create one in a custom initializer, pass the expression directly to `StateObject(wrappedValue:)` so the `@autoclosure` prevents redundant allocations:
 
 ```swift
-// WRONG - creates new instance on every view update
-struct BadView: View {
-    @ObservedObject var viewModel = MyViewModel()  // BUG!
+// WRONG - eagerly creates a new instance on every init call
+init(movie: Movie) {
+    let vm = MovieDetailsViewModel(movie: movie)
+    _viewModel = StateObject(wrappedValue: vm)
 }
 
-// CORRECT - owned objects use @StateObject
-struct GoodView: View {
-    @StateObject private var viewModel = MyViewModel()
-}
-```
-
-### @StateObject instantiation in View's initializer (if it's a Parent view)
-
-This approach is an anti-pattern in general. Prefer storing the StateObject in the parent view or wherever the model is actually owned, then pass it down (use @ObservedObject, @EnvironmentObject, or @Bindable (for @Observable)) to keep ownership and lifecycle explicit.
-If you need to create a @StateObject with initialization parameters in your view's custom initializer, be aware of redundant allocations and hidden side effects.
-
-```swift
-// WRONG - creates a new ViewModel instance each time the view's initializer is called
-// (which can happen multiple times during SwiftUI's structural identity evaluation)
-struct MovieDetailsView: View {
-    
-    @StateObject private var viewModel: MovieDetailsViewModel
-    
-    init(movie: Movie) {
-        let viewModel = MovieDetailsViewModel(movie: movie)
-        _viewModel = StateObject(wrappedValue: viewModel)      
-    }
-    
-    var body: some View {
-        // ...
-    }
-}
-
-// CORRECT - creation in @autoclosure prevents multiple instantiations
-struct MovieDetailsView: View {
-    
-    @StateObject private var viewModel: MovieDetailsViewModel
-    
-    init(movie: Movie) {
-        _viewModel = StateObject(
-            wrappedValue: MovieDetailsViewModel(movie: movie)
-        )      
-    }
-    
-    var body: some View {
-        // ...
-    }
+// CORRECT - @autoclosure defers creation
+init(movie: Movie) {
+    _viewModel = StateObject(wrappedValue: MovieDetailsViewModel(movie: movie))
 }
 ```
 
-**Modern Alternative**: Use `@Observable` with `@State` instead of `ObservableObject` patterns.
+**Modern Alternative**: Use `@Observable` with `@State` instead.
 
 ## Don't Pass Values as @State
 
-**Critical**: Never declare passed values as `@State` or `@StateObject`. The value you provide is only an initial value and won't update.
+**Critical**: Never declare passed values as `@State` or `@StateObject`. They only accept an initial value and ignore subsequent updates from the parent.
 
 ```swift
-// Parent
-struct ParentView: View {
-    @State private var item = Item(name: "Original")
-    
-    var body: some View {
-        ChildView(item: item)
-        Button("Change") {
-            item.name = "Updated"  // Child won't see this!
-        }
-    }
-}
-
-// Wrong - child ignores updates from parent
+// WRONG - child ignores parent updates
 struct ChildView: View {
-    @State var item: Item  // Accepts initial value only!
-    
-    var body: some View {
-        Text(item.name)  // Shows "Original" forever
-    }
+    @State var item: Item  // Shows initial value forever!
+    var body: some View { Text(item.name) }
 }
 
-// Correct - child receives updates
+// CORRECT - child receives updates
 struct ChildView: View {
     let item: Item  // Or @Binding if child needs to modify
-    
-    var body: some View {
-        Text(item.name)  // Updates when parent changes
-    }
+    var body: some View { Text(item.name) }
 }
 ```
-
-**Why**: `@State` and `@StateObject` retain values between view updates. That's their purpose. When a parent passes a new value, the child reuses its existing state.
 
 **Prevention**: Always mark `@State` and `@StateObject` as `private`. This prevents them from appearing in the generated initializer.
 
@@ -459,23 +383,7 @@ struct ChildView: View {
 
 ### @EnvironmentObject (Legacy - Pre-iOS 17)
 
-Legacy pattern for sharing observable objects through the environment:
-
-```swift
-// Legacy pattern - use @Observable with @Environment instead
-class AppState: ObservableObject {
-    @Published var isLoggedIn = false
-}
-
-// Inject at root
-ContentView()
-    .environmentObject(AppState())
-
-// Access in child
-struct ChildView: View {
-    @EnvironmentObject var appState: AppState
-}
-```
+Legacy pattern: inject with `.environmentObject(AppState())`, access with `@EnvironmentObject var appState: AppState`. Prefer `@Observable` with `@Environment` instead.
 
 ## Decision Flowchart
 
@@ -530,35 +438,7 @@ struct MyView: View {
 
 **Note**: This limitation only applies to `ObservableObject`. `@Observable` fully supports nested observed objects.
 
-```swift
-// Avoid - breaks animations and change tracking
-class Parent: ObservableObject {
-    @Published var child: Child  // Nested ObservableObject
-}
-
-class Child: ObservableObject {
-    @Published var value: Int
-}
-
-// Workaround - pass child directly to views
-struct ParentView: View {
-    @StateObject private var parent = Parent()
-    
-    var body: some View {
-        ChildView(child: parent.child)  // Pass nested object directly
-    }
-}
-
-struct ChildView: View {
-    @ObservedObject var child: Child
-    
-    var body: some View {
-        Text("\(child.value)")
-    }
-}
-```
-
-**Why**: SwiftUI can't track changes through nested `ObservableObject` properties. Manual workarounds break animations. With `@Observable`, this isn't an issue.
+SwiftUI can't track changes through nested `ObservableObject` properties. Workaround: pass the nested object directly to child views as `@ObservedObject`. With `@Observable`, nesting works automatically.
 
 ## Key Principles
 
