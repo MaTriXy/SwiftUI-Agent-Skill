@@ -1,5 +1,21 @@
 # SwiftUI Charts Reference
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Availability](#availability)
+- [Core APIs](#core-apis)
+- [Chart Types](#chart-types)
+- [Axis Tweaks](#axis-tweaks)
+- [Selection APIs](#selection-apis)
+- [Annotations](#annotations)
+- [ChartProxy and Custom Touch Handling](#chartproxy-and-custom-touch-handling)
+- [Modifier Scope](#modifier-scope)
+- [Styling and Visual Channels](#styling-and-visual-channels)
+- [Composing Multiple Marks](#composing-multiple-marks)
+- [Animating Chart Data](#animating-chart-data)
+- [Best Practices](#best-practices)
+
 ## Overview
 
 Swift Charts is Apple's native charting framework for SwiftUI. Use `Chart` with one or more marks to build bar, line, area, point, rule, rectangle, and sector charts. This reference covers the standard 2D chart APIs, axis customization, built-in selection APIs, annotations, and custom touch handling.
@@ -85,69 +101,38 @@ LineMark(
 
 ### BarMark
 
-Use `BarMark` for categorical comparisons, histograms, and interval bars.
-
 ```swift
-Chart(products) { product in
-    BarMark(
-        x: .value("Product", product.name),
-        y: .value("Units", product.units)
-    )
-}
+BarMark(
+    x: .value("Product", product.name),
+    y: .value("Units", product.units)
+)
 ```
 
-`BarMark` supports stacking with `MarkStackingMethod`:
-
-```swift
-.standard
-.normalized
-.center
-.unstacked
-```
+Stacking via `MarkStackingMethod`: `.standard`, `.normalized`, `.center`, `.unstacked`.
 
 ### LineMark
 
-Use `LineMark` for continuous trends.
-
 ```swift
-Chart(steps) { day in
-    LineMark(
-        x: .value("Day", day.date),
-        y: .value("Steps", day.count)
-    )
-    .interpolationMethod(.monotone)
-}
+LineMark(
+    x: .value("Day", day.date),
+    y: .value("Steps", day.count)
+)
+.interpolationMethod(.monotone)
 ```
 
-Available interpolation methods:
-
-```swift
-.linear
-.cardinal
-.cardinal(tension: 0.3)
-.catmullRom
-.catmullRom(alpha: 0.5)
-.monotone
-.stepStart
-.stepCenter
-.stepEnd
-```
+Interpolation methods: `.linear`, `.monotone`, `.cardinal`, `.catmullRom`, `.stepStart`, `.stepCenter`, `.stepEnd`. Cardinal and Catmull-Rom accept optional tension/alpha parameters.
 
 ### AreaMark
 
-Use `AreaMark` to fill under a line or between two values.
-
 ```swift
-Chart(temperatures) { sample in
-    AreaMark(
-        x: .value("Hour", sample.hour),
-        y: .value("Temperature", sample.value),
-        stacking: .unstacked
-    )
-}
+AreaMark(
+    x: .value("Hour", sample.hour),
+    y: .value("Temperature", sample.value),
+    stacking: .unstacked
+)
 ```
 
-You can also define ranged areas with `yStart` and `yEnd`, which is useful for bands such as min/max ranges or confidence intervals.
+Ranged areas use `yStart`/`yEnd` for bands like min/max or confidence intervals:
 
 ```swift
 AreaMark(
@@ -159,46 +144,29 @@ AreaMark(
 
 ### PointMark
 
-Use `PointMark` for scatter plots or to emphasize individual points.
-
 ```swift
-Chart(measurements) { measurement in
-    PointMark(
-        x: .value("Time", measurement.time),
-        y: .value("Value", measurement.value)
-    )
-}
+PointMark(
+    x: .value("Time", measurement.time),
+    y: .value("Value", measurement.value)
+)
 ```
 
 ### RectangleMark
 
-Use `RectangleMark` for heat maps, bins, and ranged cells.
-
 ```swift
-Chart(cells) { cell in
-    RectangleMark(
-        xStart: .value("Start Day", cell.startDay),
-        xEnd: .value("End Day", cell.endDay),
-        yStart: .value("Low", cell.low),
-        yEnd: .value("High", cell.high)
-    )
-}
+RectangleMark(
+    xStart: .value("Start Day", cell.startDay),
+    xEnd: .value("End Day", cell.endDay),
+    yStart: .value("Low", cell.low),
+    yEnd: .value("High", cell.high)
+)
 ```
 
 ### RuleMark
 
-Use `RuleMark` for thresholds, targets, and crosshair lines.
-
 ```swift
-Chart(sales) { item in
-    BarMark(
-        x: .value("Month", item.month),
-        y: .value("Revenue", item.revenue)
-    )
-
-    RuleMark(y: .value("Goal", 10_000))
-        .foregroundStyle(.red)
-}
+RuleMark(y: .value("Goal", 10_000))
+    .foregroundStyle(.red)
 ```
 
 ### SectorMark
@@ -348,24 +316,9 @@ AxisValueLabel(
 )
 ```
 
-Available label orientations:
+Label orientations: `.automatic`, `.horizontal`, `.vertical`, `.verticalReversed`.
 
-```swift
-.automatic
-.horizontal
-.vertical
-.verticalReversed
-```
-
-Available collision strategies:
-
-```swift
-.automatic
-.greedy
-.greedy(priority: 1, minimumSpacing: 8)
-.truncate
-.disabled
-```
+Collision strategies: `.automatic`, `.greedy`, `.greedy(priority:minimumSpacing:)`, `.truncate`, `.disabled`.
 
 ### Axis Domains and Plot Area Tweaks
 
@@ -414,55 +367,34 @@ Chart(data) { item in
 
 ### Single-Value Selection
 
-Use `chartXSelection(value:)` or `chartYSelection(value:)` when you want one selected value.
+Use `chartXSelection(value:)` or `chartYSelection(value:)` for one selected value.
 
 ```swift
-struct SelectableLineChart: View {
-    let steps: [DailySteps]
-    @State private var selectedDate: Date?
+@State private var selectedDate: Date?
 
-    var body: some View {
-        Chart(steps) { day in
-            LineMark(
-                x: .value("Day", day.date),
-                y: .value("Steps", day.count)
-            )
-            .interpolationMethod(.monotone)
+Chart(steps) { day in
+    LineMark(x: .value("Day", day.date), y: .value("Steps", day.count))
 
-            if let selectedDate {
-                RuleMark(x: .value("Selected Day", selectedDate))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .chartXSelection(value: $selectedDate)
+    if let selectedDate {
+        RuleMark(x: .value("Selected Day", selectedDate))
+            .foregroundStyle(.secondary)
     }
 }
+.chartXSelection(value: $selectedDate)
 ```
-
-`chartYSelection(value:)` works the same way for vertical selection.
 
 ### Range Selection
 
-Use `chartXSelection(range:)` or `chartYSelection(range:)` when you want a dragged range instead of a single point.
+Use `chartXSelection(range:)` or `chartYSelection(range:)` for a dragged range. Bind to a `ClosedRange` whose bound type matches the plotted axis value.
 
 ```swift
-struct RangeSelectableBars: View {
-    let weeks: [WeeklyRevenue]
-    @State private var selectedWeeks: ClosedRange<Int>?
+@State private var selectedWeeks: ClosedRange<Int>?
 
-    var body: some View {
-        Chart(weeks) { week in
-            BarMark(
-                x: .value("Week", week.index),
-                y: .value("Revenue", week.revenue)
-            )
-        }
-        .chartXSelection(range: $selectedWeeks)
-    }
+Chart(weeks) { week in
+    BarMark(x: .value("Week", week.index), y: .value("Revenue", week.revenue))
 }
+.chartXSelection(range: $selectedWeeks)
 ```
-
-Range selection requires a `ClosedRange` whose bound type matches the plotted axis value.
 
 ### Choosing Single vs Range
 
@@ -471,23 +403,16 @@ Range selection requires a `ClosedRange` whose bound type matches the plotted ax
 
 ### Angle Selection
 
-Use `chartAngleSelection(value:)` with `SectorMark` charts. There is no built-in range overload for angle selection.
+Use `chartAngleSelection(value:)` with `SectorMark` charts. No built-in range overload for angle selection.
 
 ```swift
-struct SelectablePieChart: View {
-    let expenses: [ExpenseSlice]
-    @State private var selectedAmount: Double?
+@State private var selectedAmount: Double?
 
-    var body: some View {
-        Chart(expenses) { expense in
-            SectorMark(
-                angle: .value("Amount", expense.amount)
-            )
-            .foregroundStyle(by: .value("Category", expense.category))
-        }
-        .chartAngleSelection(value: $selectedAmount)
-    }
+Chart(expenses) { expense in
+    SectorMark(angle: .value("Amount", expense.amount))
+        .foregroundStyle(by: .value("Category", expense.category))
 }
+.chartAngleSelection(value: $selectedAmount)
 ```
 
 **Important**: Selection bindings return the plottable axis value, not the full data element. Map back to your model if you need the selected record.
@@ -513,34 +438,25 @@ This is useful for selected values, thresholds, summaries, and direct labeling. 
 Use `chartOverlay`/`chartBackground` (iOS 16+) or `chartGesture` (iOS 17+) with `ChartProxy` when built-in selection modifiers are not enough.
 
 ```swift
-struct ProxyDrivenChart: View {
-    let steps: [DailySteps]
-    @State private var selectedDate: Date?
-
-    var body: some View {
-        Chart(steps) { day in
-            LineMark(x: .value("Day", day.date), y: .value("Steps", day.count))
-        }
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                Rectangle().fill(.clear).contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                // Use proxy.plotFrame (iOS 17+) or proxy.plotAreaFrame (iOS 16)
-                                guard let plotFrame = proxy.plotFrame else { return }
-                                let frame = geometry[plotFrame]
-                                let x = value.location.x - frame.origin.x
-                                guard x >= 0, x <= frame.size.width else { return }
-                                selectedDate = proxy.value(atX: x, as: Date.self)
-                            }
-                            .onEnded { _ in selectedDate = nil }
-                    )
-            }
-        }
+.chartOverlay { proxy in
+    GeometryReader { geometry in
+        Rectangle().fill(.clear).contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        guard let plotFrame = proxy.plotFrame else { return }
+                        let frame = geometry[plotFrame]
+                        let x = value.location.x - frame.origin.x
+                        guard x >= 0, x <= frame.size.width else { return }
+                        selectedDate = proxy.value(atX: x, as: Date.self)
+                    }
+                    .onEnded { _ in selectedDate = nil }
+            )
     }
 }
 ```
+
+Use `proxy.plotFrame` (iOS 17+) or `proxy.plotAreaFrame` (iOS 16) to get the plot area anchor.
 
 `ChartProxy` gives you lower-level access to:
 
@@ -632,40 +548,19 @@ Chart(measurements) { item in
 
 ## Composing Multiple Marks
 
-Overlay different mark types inside the same `Chart` to build richer visualizations.
-
-### Line with Points
+Combine different mark types inside the same `Chart` closure:
 
 ```swift
-Chart(steps) { day in
-    LineMark(
-        x: .value("Day", day.date),
-        y: .value("Steps", day.count)
-    )
+// Line with points
+LineMark(x: .value("Day", day.date), y: .value("Steps", day.count))
     .interpolationMethod(.monotone)
+PointMark(x: .value("Day", day.date), y: .value("Steps", day.count))
 
-    PointMark(
-        x: .value("Day", day.date),
-        y: .value("Steps", day.count)
-    )
-}
-```
-
-### Bars with Threshold Line
-
-```swift
-Chart {
-    ForEach(sales) { item in
-        BarMark(
-            x: .value("Month", item.month),
-            y: .value("Revenue", item.revenue)
-        )
-    }
-
-    RuleMark(y: .value("Target", 10_000))
-        .foregroundStyle(.red)
-        .lineStyle(StrokeStyle(dash: [5, 3]))
-}
+// Bars with threshold line
+BarMark(x: .value("Month", item.month), y: .value("Revenue", item.revenue))
+RuleMark(y: .value("Target", 10_000))
+    .foregroundStyle(.red)
+    .lineStyle(StrokeStyle(dash: [5, 3]))
 ```
 
 ## Animating Chart Data

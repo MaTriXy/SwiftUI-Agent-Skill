@@ -2,6 +2,17 @@
 
 > macOS-specific SwiftUI views, file operations, drag & drop, and AppKit interop. Covers `HSplitView`, `VSplitView`, `Table`, `PasteButton`, file dialogs, cross-app drag & drop, and `NSViewRepresentable`.
 
+## Table of Contents
+
+- [Quick Lookup Table](#quick-lookup-table)
+- [HSplitView & VSplitView (macOS-only)](#hsplitview--vsplitview-macos-only)
+- [Table](#table)
+- [PasteButton & CopyButton](#pastebutton--copybutton)
+- [File Operations](#file-operations)
+- [Drag, Drop & Pasteboard](#drag-drop--pasteboard)
+- [AppKit Interop](#appkit-interop)
+- [Best Practices](#best-practices)
+
 ---
 
 ## Quick Lookup Table
@@ -47,46 +58,22 @@
 
 ## HSplitView & VSplitView (macOS-only)
 
-Resizable split layouts with user-draggable dividers. Use for IDE-style panes where all panels are equal peers.
-
-### Horizontal split
+Resizable split layouts with user-draggable dividers. Use for IDE-style panes where all panels are equal peers. `VSplitView` works identically but splits vertically (use `minHeight` instead).
 
 ```swift
-struct EditorLayout: View {
-    var body: some View {
-        HSplitView {
-            FileTreeView()
-                .frame(minWidth: 200)
-
-            CodeEditorView()
-                .frame(minWidth: 400)
-
-            PreviewPane()
-                .frame(minWidth: 200)
-        }
-    }
-}
-```
-
-### Vertical split
-
-```swift
-struct TerminalLayout: View {
-    var body: some View {
-        VSplitView {
-            CodeEditorView()
-                .frame(minHeight: 300)
-
-            ConsoleOutputView()
-                .frame(minHeight: 100)
-        }
-    }
+HSplitView {
+    FileTreeView()
+        .frame(minWidth: 200)
+    CodeEditorView()
+        .frame(minWidth: 400)
+    PreviewPane()
+        .frame(minWidth: 200)
 }
 ```
 
 > **When to use which:**
 > - **`NavigationSplitView`** — sidebar-based navigation (sidebar drives content/detail)
-> - **`HSplitView`/`VSplitView`** — IDE-style layouts where all panes are equal peers (editor + terminal, code + preview)
+> - **`HSplitView`/`VSplitView`** — IDE-style layouts where all panes are equal peers
 
 ---
 
@@ -165,64 +152,33 @@ struct CopyableContent: View {
 On macOS, presents a native `NSOpenPanel` with column/list/gallery view, sidebar favorites, tags, and QuickLook.
 
 ```swift
-struct FilePickerView: View {
-    @State private var showImporter = false
-    @State private var selectedURL: URL?
-
-    var body: some View {
-        Button("Choose PDF") {
-            showImporter = true
-        }
-        .fileImporter(
-            isPresented: $showImporter,
-            allowedContentTypes: [.pdf],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                guard let url = urls.first else { return }
-                let gotAccess = url.startAccessingSecurityScopedResource()
-                if gotAccess {
-                    selectedURL = url
-                    url.stopAccessingSecurityScopedResource()
-                }
-            case .failure(let error):
-                print(error.localizedDescription)
-            }
-        }
+.fileImporter(
+    isPresented: $showImporter,
+    allowedContentTypes: [.pdf],
+    allowsMultipleSelection: false
+) { result in
+    if case .success(let urls) = result, let url = urls.first {
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+        // use url
     }
 }
 ```
 
-> **Important:** Always call `startAccessingSecurityScopedResource()` on returned URLs, and `stopAccessingSecurityScopedResource()` when done.
+> **Important:** Always call `startAccessingSecurityScopedResource()` on returned URLs, and `stopAccessingSecurityScopedResource()` when done. These are security-scoped bookmarks — access fails without this.
 
 ### fileExporter
 
 On macOS, presents a native `NSSavePanel` with format dropdown and tags.
 
 ```swift
-struct ExportView: View {
-    @State private var showExporter = false
-    @State private var document = TextFile(text: "Hello, world!")
-
-    var body: some View {
-        Button("Export") {
-            showExporter = true
-        }
-        .fileExporter(
-            isPresented: $showExporter,
-            document: document,
-            contentType: .plainText,
-            defaultFilename: "MyFile.txt"
-        ) { result in
-            switch result {
-            case .success(let url):
-                print("Saved to \(url)")
-            case .failure(let error):
-                print(error.localizedDescription)
-            }
-        }
-    }
+.fileExporter(
+    isPresented: $showExporter,
+    document: document,
+    contentType: .plainText,
+    defaultFilename: "MyFile.txt"
+) { result in
+    // handle Result<URL, Error>
 }
 ```
 
@@ -319,22 +275,9 @@ Wraps an AppKit `NSView` for use in SwiftUI. Implement `makeNSView(context:)` an
 ```swift
 struct WebView: NSViewRepresentable {
     let url: URL
-
-    func makeNSView(context: Context) -> WKWebView {
-        WKWebView()
-    }
-
+    func makeNSView(context: Context) -> WKWebView { WKWebView() }
     func updateNSView(_ nsView: WKWebView, context: Context) {
-        let request = URLRequest(url: url)
-        nsView.load(request)
-    }
-}
-
-// Usage
-struct ContentView: View {
-    var body: some View {
-        WebView(url: URL(string: "https://apple.com")!)
-            .frame(minWidth: 600, minHeight: 400)
+        nsView.load(URLRequest(url: url))
     }
 }
 ```
@@ -352,22 +295,14 @@ struct SearchField: NSViewRepresentable {
         field.delegate = context.coordinator
         return field
     }
-
     func updateNSView(_ nsView: NSSearchField, context: Context) {
         nsView.stringValue = text
     }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
 
     class Coordinator: NSObject, NSSearchFieldDelegate {
         var text: Binding<String>
-
-        init(text: Binding<String>) {
-            self.text = text
-        }
-
+        init(text: Binding<String>) { self.text = text }
         func controlTextDidChange(_ obj: Notification) {
             if let field = obj.object as? NSSearchField {
                 text.wrappedValue = field.stringValue
@@ -377,7 +312,7 @@ struct SearchField: NSViewRepresentable {
 }
 ```
 
-> **Warning:** SwiftUI controls the layout via `frame` and `bounds`. Never set these properties directly on the managed `NSView` — it conflicts with SwiftUI and causes undefined behavior.
+> **Warning:** Never set `frame`/`bounds` directly on the managed `NSView` — SwiftUI owns the layout.
 
 ### NSViewControllerRepresentable (macOS-only)
 

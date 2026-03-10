@@ -1,5 +1,22 @@
 # SwiftUI State Management Reference
 
+## Table of Contents
+
+- [Property Wrapper Selection Guide](#property-wrapper-selection-guide)
+- [@State](#state)
+- [Property Wrappers Inside @Observable Classes](#property-wrappers-inside-observable-classes)
+- [@Binding](#binding)
+- [@FocusState](#focusstate)
+- [@StateObject vs @ObservedObject (Legacy - Pre-iOS 17)](#stateobject-vs-observedobject-legacy---pre-ios-17)
+- [Don't Pass Values as @State](#dont-pass-values-as-state)
+- [@Bindable (iOS 17+)](#bindable-ios-17)
+- [let vs var for Passed Values](#let-vs-var-for-passed-values)
+- [Environment and Preferences](#environment-and-preferences)
+- [Decision Flowchart](#decision-flowchart)
+- [State Privacy Rules](#state-privacy-rules)
+- [Avoid Nested ObservableObject](#avoid-nested-observableobject)
+- [Key Principles](#key-principles)
+
 ## Property Wrapper Selection Guide
 
 | Wrapper | Use When | Notes |
@@ -115,23 +132,7 @@ struct ChildView: View {
 
 ### When NOT to use @Binding
 
-```swift
-// Bad - child only displays, doesn't modify
-struct DisplayView: View {
-    @Binding var title: String  // Unnecessary
-    var body: some View {
-        Text(title)
-    }
-}
-
-// Good - use let for read-only
-struct DisplayView: View {
-    let title: String
-    var body: some View {
-        Text(title)
-    }
-}
-```
+- **Don't use `@Binding` for read-only values.** If the child only displays the value and never modifies it, use `let` instead. `@Binding` adds unnecessary overhead and implies a write contract that doesn't exist.
 
 ## @FocusState
 
@@ -144,62 +145,29 @@ Use `@FocusState` to control text input focus in SwiftUI. Choose the focus value
 
 ### Single Field: Bool
 
-`Bool` keeps the code simple when there is only one field to focus.
-
 ```swift
-struct LoginView: View {
-    @State private var email = ""
-    @FocusState private var isEmailFocused: Bool
+@FocusState private var isFocused: Bool
 
-    var body: some View {
-        TextField("Email", text: $email)
-            .focused($isEmailFocused)
-            .onAppear {
-                isEmailFocused = true
-            }
-    }
-}
+TextField("Email", text: $email)
+    .focused($isFocused)
+    .onAppear { isFocused = true }
 ```
 
 ### Multiple Fields: Enum (Preferred)
 
-Use a `Hashable` enum optional focus value when a view manages multiple fields. This keeps focus transitions readable and type-safe.
+Use a `Hashable` enum optional focus value when a view manages multiple fields.
 
 ```swift
-struct SignUpView: View {
-    enum Field: Hashable {
-        case name
-        case email
-        case password
-    }
+enum Field: Hashable { case name, email, password }
+@FocusState private var focusedField: Field?
 
-    @State private var name = ""
-    @State private var email = ""
-    @State private var password = ""
-    @FocusState private var focusedField: Field?
-
-    var body: some View {
-        Form {
-            TextField("Name", text: $name)
-                .focused($focusedField, equals: .name)
-
-            TextField("Email", text: $email)
-                .focused($focusedField, equals: .email)
-
-            SecureField("Password", text: $password)
-                .focused($focusedField, equals: .password)
-
-            Button("Next") {
-                switch focusedField {
-                case .name: focusedField = .email
-                case .email: focusedField = .password
-                default: focusedField = nil
-                }
-            }
-        }
-    }
-}
+TextField("Name", text: $name)
+    .focused($focusedField, equals: .name)
+TextField("Email", text: $email)
+    .focused($focusedField, equals: .email)
 ```
+
+Set `focusedField = .email` to move focus programmatically; set `nil` to dismiss the keyboard.
 
 ## @StateObject vs @ObservedObject (Legacy - Pre-iOS 17)
 
@@ -222,16 +190,11 @@ The key distinction is **ownership**: `@StateObject` when the view **creates and
 Prefer storing the `@StateObject` in the parent view and passing it down. If you must create one in a custom initializer, pass the expression directly to `StateObject(wrappedValue:)` so the `@autoclosure` prevents redundant allocations:
 
 ```swift
-// WRONG - eagerly creates a new instance on every init call
-init(movie: Movie) {
-    let vm = MovieDetailsViewModel(movie: movie)
-    _viewModel = StateObject(wrappedValue: vm)
-}
+// WRONG — assigning to a local first defeats @autoclosure
+_viewModel = StateObject(wrappedValue: vm)
 
-// CORRECT - @autoclosure defers creation
-init(movie: Movie) {
-    _viewModel = StateObject(wrappedValue: MovieDetailsViewModel(movie: movie))
-}
+// CORRECT — inline expression defers creation
+_viewModel = StateObject(wrappedValue: MovieDetailsViewModel(movie: movie))
 ```
 
 **Modern Alternative**: Use `@Observable` with `@State` instead.

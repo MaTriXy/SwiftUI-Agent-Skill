@@ -1,5 +1,11 @@
 # SwiftUI Performance Patterns Reference
 
+## Table of Contents
+
+- [Performance Optimization](#performance-optimization)
+- [Anti-Patterns](#anti-patterns)
+- [Summary Checklist](#summary-checklist)
+
 ## Performance Optimization
 
 ### 1. Avoid Redundant State Updates

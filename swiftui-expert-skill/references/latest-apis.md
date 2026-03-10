@@ -32,33 +32,10 @@ These replacements have minimal API shape changes. Most are near-direct swaps; a
 
 ### Presentation
 
-**Always use `confirmationDialog(...)` instead of `actionSheet(...)`.**
+- **Always use `.confirmationDialog(_:isPresented:actions:message:)`** instead of `actionSheet(...)`.
+- **Always use `.alert(_:isPresented:actions:message:)`** instead of `alert(isPresented:content:)`.
 
-```swift
-// Modern
-.confirmationDialog("Choose Option", isPresented: $showOptions) {
-    Button("Option A") { selectA() }
-    Button("Cancel", role: .cancel) { }
-} message: {
-    Text("Select your preferred option.")
-}
-
-// Deprecated — ActionSheet(title:buttons:) pattern
-```
-
-**Always use `alert(_:isPresented:actions:message:)` instead of `alert(isPresented:content:)`.**
-
-```swift
-// Modern
-.alert("Delete Item", isPresented: $showAlert) {
-    Button("Delete", role: .destructive) { deleteItem() }
-    Button("Cancel", role: .cancel) { }
-} message: {
-    Text("This action cannot be undone.")
-}
-
-// Deprecated — Alert(title:message:buttons:) pattern
-```
+Both take a title `String`, `isPresented: Binding<Bool>`, an `actions` builder with `Button` items (supporting `role: .destructive` / `.cancel`), and an optional `message` builder.
 
 ### Text Input
 
@@ -105,18 +82,14 @@ Image("photo")
 
 ### Navigation
 
-**Use `NavigationStack` (or `NavigationSplitView`) instead of `NavigationView`.** The API shape changed significantly -- value-based `NavigationLink` with `navigationDestination(for:)` replaces destination-based links.
+**Use `NavigationStack` (or `NavigationSplitView`) instead of `NavigationView`.** Value-based `NavigationLink(value:)` with `.navigationDestination(for:)` replaces destination-based links.
 
 ```swift
 NavigationStack {
     List(items) { item in
-        NavigationLink(value: item) {
-            Text(item.name)
-        }
+        NavigationLink(value: item) { Text(item.name) }
     }
-    .navigationDestination(for: Item.self) { item in
-        DetailView(item: item)
-    }
+    .navigationDestination(for: Item.self) { DetailView(item: $0) }
 }
 ```
 
@@ -141,36 +114,7 @@ PasteButton(payloadType: String.self) { strings in
 
 ### State Management
 
-**Prefer `@Observable` over `ObservableObject` for new code.**
-
-```swift
-// Modern (iOS 17+)
-@Observable
-class UserProfile {
-    var name: String = ""
-    var email: String = ""
-}
-
-struct ProfileView: View {
-    @State private var profile = UserProfile()
-    var body: some View {
-        TextField("Name", text: $profile.name)
-    }
-}
-
-// Legacy
-class UserProfile: ObservableObject {
-    @Published var name: String = ""
-    @Published var email: String = ""
-}
-
-struct ProfileView: View {
-    @StateObject private var profile = UserProfile()
-    var body: some View {
-        TextField("Name", text: $profile.name)
-    }
-}
-```
+- **Prefer `@Observable` over `ObservableObject` for new code.** Use `@State` instead of `@StateObject`; use `@Bindable` instead of `@ObservedObject`. See `state-management.md` for full `@Observable` migration patterns.
 
 ### Events
 
@@ -178,27 +122,10 @@ struct ProfileView: View {
 
 The deprecated variant passes only the new value. The modern variants provide either both old and new values, or a no-parameter closure.
 
-```swift
-// Modern — no-parameter closure (most common)
-.onChange(of: playState) {
-    model.playStateDidChange(state: playState)
-}
-
-// Modern — old and new values
-.onChange(of: selectedTab) { oldTab, newTab in
-    analytics.trackTabChange(from: oldTab, to: newTab)
-}
-
-// Modern — with initial trigger
-.onChange(of: searchText, initial: true) {
-    performSearch()
-}
-
-// Deprecated
-.onChange(of: playState) { newValue in
-    model.playStateDidChange(state: newValue)
-}
-```
+- **No-parameter** (most common): `.onChange(of: value) { doSomething() }`
+- **Old and new values**: `.onChange(of: value) { old, new in ... }`
+- **With initial trigger**: `.onChange(of: value, initial: true) { ... }`
+- **Deprecated**: `.onChange(of: value) { newValue in ... }` — single-parameter closure
 
 ### Gestures
 
@@ -210,36 +137,14 @@ The deprecated variant passes only the new value. The modern variants provide ei
 **Consider `containerRelativeFrame()` or `visualEffect()` as alternatives to `GeometryReader` for sizing and position-based effects.** `GeometryReader` is not deprecated and remains necessary for many measurement-based layouts.
 
 ```swift
-// Modern — containerRelativeFrame
 Image("hero")
     .resizable()
-    .containerRelativeFrame(.horizontal) { length, axis in
-        length * 0.8
-    }
-
-// Modern — visualEffect for position-based effects
-Text("Parallax")
-    .visualEffect { content, geometry in
-        content.offset(y: geometry.frame(in: .global).minY * 0.5)
-    }
-
-// Legacy — only use if necessary
-GeometryReader { geometry in
-    Image("hero")
-        .frame(width: geometry.size.width * 0.8)
-}
+    .containerRelativeFrame(.horizontal) { length, axis in length * 0.8 }
 ```
 
-**Consider `onGeometryChange(for:of:action:)` when you need to react to geometry changes of a specific view.** It reports changes for the view you attach it to, and is useful for driving state/effects from geometry updates. `GeometryReader` is still useful when layout itself depends on geometry.
-
-```swift
-Text("Content")
-    .onGeometryChange(for: CGSize.self) { $0.size } action: { newSize in
-        // React to size changes
-    }
-```
-
-**Use `.coordinateSpace(.named("id"))` instead of `.coordinateSpace(name: "id")`.**
+- **`visualEffect { content, geometry in ... }`** — position-based effects (parallax, offsets) without a `GeometryReader` wrapper.
+- **`onGeometryChange(for:of:action:)`** — react to geometry changes of a specific view; useful for driving state/effects. `GeometryReader` is still better when layout itself depends on geometry.
+- **`.coordinateSpace(.named("id"))`** instead of `.coordinateSpace(name: "id")`.
 
 ---
 

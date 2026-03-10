@@ -1,5 +1,13 @@
 # SwiftUI Image Optimization Reference
 
+## Table of Contents
+
+- [AsyncImage Best Practices](#asyncimage-best-practices)
+- [Image Decoding and Downsampling (Optional Optimization)](#image-decoding-and-downsampling-optional-optimization)
+- [UIImage Loading and Memory](#uiimage-loading-and-memory)
+- [SF Symbols](#sf-symbols)
+- [Summary Checklist](#summary-checklist)
+
 ## AsyncImage Best Practices
 
 ### Basic AsyncImage with Phase Handling

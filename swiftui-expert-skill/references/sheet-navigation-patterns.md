@@ -1,5 +1,14 @@
 # SwiftUI Sheet, Navigation & Inspector Patterns Reference
 
+## Table of Contents
+
+- [Sheet Patterns](#sheet-patterns)
+- [Navigation Patterns](#navigation-patterns)
+- [Multi-Column Navigation with NavigationSplitView](#multi-column-navigation-with-navigationsplitview)
+- [Inspector](#inspector)
+- [Presentation Modifiers](#presentation-modifiers)
+- [Summary Checklist](#summary-checklist)
+
 ## Sheet Patterns
 
 ### Item-Driven Sheets (Preferred)

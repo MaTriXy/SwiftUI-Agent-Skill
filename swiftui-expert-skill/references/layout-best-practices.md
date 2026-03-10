@@ -1,5 +1,16 @@
 # SwiftUI Layout Best Practices Reference
 
+## Table of Contents
+
+- [Relative Layout Over Constants](#relative-layout-over-constants)
+- [Context-Agnostic Views](#context-agnostic-views)
+- [Own Your Container](#own-your-container)
+- [Layout Performance](#layout-performance)
+- [View Logic and Testability](#view-logic-and-testability)
+- [Full-Width Views](#full-width-views)
+- [Action Handlers](#action-handlers)
+- [Summary Checklist](#summary-checklist)
+
 ## Relative Layout Over Constants
 
 **Use dynamic layout calculations instead of hard-coded values.**

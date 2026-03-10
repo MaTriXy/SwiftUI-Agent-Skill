@@ -1,5 +1,20 @@
 # SwiftUI View Structure Reference
 
+## Table of Contents
+
+- [View Structure Principles](#view-structure-principles)
+- [Prefer Modifiers Over Conditional Views](#prefer-modifiers-over-conditional-views)
+- [Extract Subviews, Not Computed Properties](#extract-subviews-not-computed-properties)
+- [When @ViewBuilder Functions Are Acceptable](#when-viewbuilder-functions-are-acceptable)
+- [When to Extract Subviews](#when-to-extract-subviews)
+- [Container View Pattern](#container-view-pattern)
+- [ZStack vs overlay/background](#zstack-vs-overlaybackground)
+- [Compositing Group Before Clipping](#compositing-group-before-clipping)
+- [Reusable Styling with ViewModifier](#reusable-styling-with-viewmodifier)
+- [Skeleton Loading with Redacted Views](#skeleton-loading-with-redacted-views)
+- [UIViewRepresentable Essentials](#uiviewrepresentable-essentials)
+- [Summary Checklist](#summary-checklist)
+
 ## View Structure Principles
 
 SwiftUI's diffing algorithm compares view hierarchies to determine what needs updating. Proper view composition directly impacts performance.
