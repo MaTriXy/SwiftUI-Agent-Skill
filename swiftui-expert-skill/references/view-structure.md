@@ -7,8 +7,7 @@
 - [Struct or Method / Computed Property?](#struct-or-method--computed-property)
 - [Prefer Modifiers Over Conditional Views](#prefer-modifiers-over-conditional-views)
 - [Extract Subviews, Not Computed Properties](#extract-subviews-not-computed-properties)
-- [@ViewBuilder Annotation](#viewbuilder-annotation)
-- [When @ViewBuilder Functions Are Acceptable](#when-viewbuilder-functions-are-acceptable)
+- [@ViewBuilder](#viewbuilder)
 - [Keep View Body Simple and Avoid High-Cost Operations](#keep-view-body-simple-and-avoid-high-cost-operations)
 - [When to Extract Subviews](#when-to-extract-subviews)
 - [Container View Pattern](#container-view-pattern)
@@ -46,7 +45,7 @@ struct ContentView: View {
 
     // MARK: - State Properties
     @Binding var isToggled: Bool
-    @State var viewModel: SomeViewModel
+    @State private var viewModel: SomeViewModel
 
     // MARK: - Private Properties
     private let title: String = "SwiftUI Guide"
@@ -84,7 +83,7 @@ If a `View` is intended to be reusable across multiple screens, encapsulate it w
 However, if a view maintains state using `@State`, `@Binding`, `@ObservedObject`, `@Environment`, `@StateObject`, or similar wrappers, it should generally be a separate `struct`.
 
 - For simple, static views: a computed property is acceptable.
-- For views requiring parameters: a method is more appropriate.
+- For views requiring parameters: a method is more appropriate, but only when those parameters are stable. If parameters change per-call (e.g. inside a `ForEach` where each call receives a different item), prefer a separate `struct` so SwiftUI can diff inputs and skip body evaluation.
 - For reusable, stateful, or logically independent UI sections: prefer a dedicated `struct`.
 
 ```swift
@@ -247,33 +246,20 @@ struct ComplexSection: View {
 2. Since nothing changed, SwiftUI skips calling `ComplexSection.body`
 3. The complex view code never executes unnecessarily
 
-## @ViewBuilder Annotation
+## @ViewBuilder
 
-The `@ViewBuilder` attribute is only required when a function or computed property returns multiple different views conditionally, for example through `if` or `switch`.
+The `@ViewBuilder` attribute is only required when a function or computed property returns multiple different views conditionally, for example through `if` or `switch`:
 
 ```swift
-struct ContentView: View {
-    @State private var isExpanded = false
-
-    var body: some View {
+@ViewBuilder
+private var conditionalView: some View {
+    if isExpanded {
         VStack {
-            conditionalView
-            Button("Toggle") {
-                isExpanded.toggle()
-            }
+            Text("Expanded View")
+            Image(systemName: "star")
         }
-    }
-
-    @ViewBuilder
-    private var conditionalView: some View {
-        if isExpanded {
-            VStack {
-                Text("Expanded View")
-                Image(systemName: "star")
-            }
-        } else {
-            Text("Collapsed View")
-        }
+    } else {
+        Text("Collapsed View")
     }
 }
 ```
@@ -290,9 +276,9 @@ var conditionalText: some View {
 }
 ```
 
-## When @ViewBuilder Functions Are Acceptable
+Use `@ViewBuilder` functions for small, simple sections (a few views, no expensive computation) that don't affect performance. They work particularly well for static content that doesn't depend on any `@State` or `@Binding`, since SwiftUI won't need to diff them independently. Extract to a separate `struct` when the section is complex, depends on state, or needs to be skipped during re-evaluation.
 
-Use `@ViewBuilder` when:
+Prefer `@ViewBuilder` when:
 
 - there is conditional branching between multiple view types
 - extracting a separate `struct` would not provide meaningful separation
